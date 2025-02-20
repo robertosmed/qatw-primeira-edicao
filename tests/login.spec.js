@@ -6,6 +6,8 @@ import { loginPage } from '../pages/loginPage';
 
 import { dashPage } from '../pages/dashPage';
 
+import { cleanJobs, getJob } from '../support/redis';
+
 test('nao deve logar quando o codigo 2FA é invalido', async ({ page }) => {
 
   const loginP = new loginPage(page);
@@ -15,9 +17,11 @@ test('nao deve logar quando o codigo 2FA é invalido', async ({ page }) => {
     senha:'147258'
   }
 
+  await cleanJobs();
+
   await loginP.acessaPagina();
- await loginP.preencherCPF(usuario.cpf);
- await loginP.preencherSenha(usuario.senha);
+  await loginP.preencherCPF(usuario.cpf);
+  await loginP.preencherSenha(usuario.senha);
 
   await loginP.preencherCodigo2FA('123456');
 
@@ -35,22 +39,25 @@ test('deve logar a conta do usuário', async ({ page }) => {
     senha:'147258'
   }
 
+  await cleanJobs();
+
  await loginP.acessaPagina();
  await loginP.preencherCPF(usuario.cpf);
  await loginP.preencherSenha(usuario.senha);
+
+ // checkpoint
+ await page.getByRole('heading', { name: 'Verificação em duas etapas' }).waitFor({timeout: 3000});
+
+ const codigo = await getJob();
  
 
-  //temporario
-  await page.waitForTimeout(3000);
-  const codigo = await obterCodigo2FA();
-
+  // const codigo = await obterCodigo2FA(usuario.cpf);
+  
   await loginP.preencherCodigo2FA(codigo);
 
-  //temporario
-  await page.waitForTimeout(2000);
 
 
-  expect(await dashP.verificaSaldo()).toContainText('R$ 5.000,00');
+  await expect(await dashP.verificaSaldo()).toContainText('R$ 5.000,00');
 
 });
 
